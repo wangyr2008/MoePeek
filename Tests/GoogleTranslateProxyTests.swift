@@ -6,8 +6,12 @@ import Testing
 @Suite struct GoogleTranslateProxyTests {
     @Test func disabledProxyIgnoresUnfinishedFieldsAndPreservesSystemRouting() throws {
         let config = try GoogleTranslateProxySettings(enabled: false, host: "", port: "").configuration()
-        #expect(config.proxyConfigurations.isEmpty)
-        #expect(config.connectionProxyDictionary == nil)
+        // `proxyConfigurations` is macOS 14+; the macOS 12 fallback path uses
+        // connectionProxyDictionary instead, so only assert it where available.
+        if #available(macOS 14.0, *) {
+            #expect(config.proxyConfigurations.isEmpty)
+            #expect(config.connectionProxyDictionary == nil)
+        }
         #expect(config.urlCache == nil)
         #expect(config.requestCachePolicy == .reloadIgnoringLocalCacheData)
     }
@@ -15,8 +19,13 @@ import Testing
     @Test(arguments: ["127.0.0.1", "localhost", "proxy.example.com", "::1", "[::1]", " 127.0.0.1 \n"])
     func acceptsProxyHosts(host: String) throws {
         let config = try GoogleTranslateProxySettings(enabled: true, host: host, port: " 7890 ").configuration()
-        #expect(config.proxyConfigurations.count == 1)
-        #expect(config.proxyConfigurations.first?.allowFailover == false)
+        if #available(macOS 14.0, *) {
+            #expect(config.proxyConfigurations.count == 1)
+            #expect(config.proxyConfigurations.first?.allowFailover == false)
+        } else {
+            #expect(config.connectionProxyDictionary?["HTTPEnable"] as? Int == 1)
+            #expect(config.connectionProxyDictionary?["HTTPPort"] as? Int == 7890)
+        }
         #expect(config.urlCache == nil)
     }
 
