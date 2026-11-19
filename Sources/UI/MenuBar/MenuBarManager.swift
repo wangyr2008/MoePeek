@@ -39,13 +39,25 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
     // MARK: - Icon
 
     /// The five icon-related Defaults keys can change live from Settings; re-apply on change.
+    /// Defaults writes in this app always happen on the main thread, so the KVO callback
+    /// can safely assume main-actor isolation.
     private func observeIconChanges() {
         iconObservers = [
-            Defaults.observe(.menuBarIconStyle, options: []) { [weak self] _ in self?.applyIcon() },
-            Defaults.observe(.menuBarCustomIconSource, options: []) { [weak self] _ in self?.applyIcon() },
-            Defaults.observe(.menuBarCustomSymbolName, options: []) { [weak self] _ in self?.applyIcon() },
-            Defaults.observe(.menuBarCustomIconIsTemplate, options: []) { [weak self] _ in self?.applyIcon() },
-            Defaults.observe(.menuBarCustomIconRevision, options: []) { [weak self] _ in self?.applyIcon() },
+            Defaults.observe(.menuBarIconStyle, options: []) { [weak self] _ in
+                MainActor.assumeIsolated { self?.applyIcon() }
+            },
+            Defaults.observe(.menuBarCustomIconSource, options: []) { [weak self] _ in
+                MainActor.assumeIsolated { self?.applyIcon() }
+            },
+            Defaults.observe(.menuBarCustomSymbolName, options: []) { [weak self] _ in
+                MainActor.assumeIsolated { self?.applyIcon() }
+            },
+            Defaults.observe(.menuBarCustomIconIsTemplate, options: []) { [weak self] _ in
+                MainActor.assumeIsolated { self?.applyIcon() }
+            },
+            Defaults.observe(.menuBarCustomIconRevision, options: []) { [weak self] _ in
+                MainActor.assumeIsolated { self?.applyIcon() }
+            },
         ]
     }
 
