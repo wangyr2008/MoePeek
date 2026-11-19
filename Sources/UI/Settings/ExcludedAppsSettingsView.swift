@@ -33,7 +33,9 @@ struct ExcludedAppsSettingsView: View {
                     }
                 }
             }
-            .background(.background.secondary)
+            // `.background.secondary` hierarchical style is macOS 14+; plain control
+            // background color reads the same on the macOS 12 build.
+            .background(Color(nsColor: .controlBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 6))
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(.separator))
 
