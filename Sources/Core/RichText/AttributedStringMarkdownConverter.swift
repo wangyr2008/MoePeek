@@ -103,7 +103,15 @@ struct AttributedStringMarkdownConverter {
         ) != nil
 
         if listDepth > 0 || startsWithBullet {
-            let ordered = style?.textLists.last?.isOrdered ?? false
+            let ordered: Bool
+            if #available(macOS 13.0, *) {
+                ordered = style?.textLists.last?.isOrdered ?? false
+            } else {
+                // macOS 12: `TextList.isOrdered` is unavailable; detect the marker style
+                // from the text itself, which yields the same result for real markers.
+                let markerRange = NSRange(text.startIndex..., in: text)
+                ordered = Self.orderedMarkerPattern.firstMatch(in: text, range: markerRange) != nil
+            }
             text = stripListMarker(from: text, ordered: ordered)
             guard !text.isEmpty else { return }
             let indent = String(repeating: "  ", count: max(listDepth - 1, 0))

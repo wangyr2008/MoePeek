@@ -86,8 +86,13 @@ enum ScreenCaptureOCR {
             }
 
             request.recognitionLevel = .accurate
-            request.automaticallyDetectsLanguage = true
-            request.recognitionLanguages = ["zh-Hans", "zh-Hant", "en-US", "ja-JP", "ko-KR"]
+            if #available(macOS 13.0, *) {
+                // Automatic language detection supersedes the language hint list.
+                request.automaticallyDetectsLanguage = true
+            } else {
+                // macOS 12: no automatic detection; keep the explicit hint list.
+                request.recognitionLanguages = ["zh-Hans", "zh-Hant", "en-US", "ja-JP", "ko-KR"]
+            }
             request.usesLanguageCorrection = true
 
             let handler = VNImageRequestHandler(cgImage: image, options: [:])

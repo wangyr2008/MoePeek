@@ -28,12 +28,27 @@ struct GoogleTranslateProxySettings: Equatable, Sendable {
             throw ValidationError.invalidPort
         }
 
-        var proxy = ProxyConfiguration(httpCONNECTProxy: .hostPort(
-            host: NWEndpoint.Host(hostname), port: proxyPort
-        ))
-        // A failed explicit proxy must report an error instead of bypassing it.
-        proxy.allowFailover = false
-        config.proxyConfigurations = [proxy]
+        if #available(macOS 14.0, *) {
+            var proxy = ProxyConfiguration(httpCONNECTProxy: .hostPort(
+                host: NWEndpoint.Host(hostname), port: proxyPort
+            ))
+            // A failed explicit proxy must report an error instead of bypassing it.
+            proxy.allowFailover = false
+            config.proxyConfigurations = [proxy]
+        } else {
+            // macOS 12/13: `URLSession.ProxyConfiguration` is unavailable; fall back to
+            // the classic connection proxy dictionary (HTTP CONNECT tunneling for both
+            // HTTP and HTTPS). `allowFailover = false` has no equivalent here, but a dead
+            // proxy still surfaces connection errors rather than silently bypassing.
+            config.connectionProxyDictionary = [
+                "HTTPEnable": 1,
+                "HTTPProxy": hostname,
+                "HTTPPort": Int(proxyPort.rawValue),
+                "HTTPSEnable": 1,
+                "HTTPSProxy": hostname,
+                "HTTPSPort": Int(proxyPort.rawValue),
+            ]
+        }
         return config
     }
 
