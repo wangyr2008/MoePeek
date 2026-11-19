@@ -8,7 +8,7 @@ import KeyboardShortcuts
 final class MenuBarManager: NSObject, NSMenuDelegate {
     private weak var appDelegate: AppDelegate?
     private var statusItem: NSStatusItem?
-    private var iconObservers: [Defaults.ObservationToken] = []
+    private var iconObservers: [any Defaults.Observation] = []
 
     init(appDelegate: AppDelegate) {
         self.appDelegate = appDelegate
