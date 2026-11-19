@@ -236,7 +236,7 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
     }
 
     private func applyShortcut(to item: NSMenuItem, name: KeyboardShortcuts.Name?) {
-        guard let name, let shortcut = KeyboardShortcuts.get(name) else { return }
+        guard let name, let shortcut = KeyboardShortcuts.getShortcut(for: name) else { return }
         item.keyEquivalent = shortcut.nsMenuItemKeyEquivalent ?? ""
         item.keyEquivalentModifierMask = shortcut.modifiers
     }
@@ -253,8 +253,8 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
             for item in menu.items where item.action != nil {
                 guard item.tag > 0, item.tag <= Self.shortcutNameTagOrder.count else { continue }
                 let name = Self.shortcutNameTagOrder[item.tag - 1]
-                item.keyEquivalent = KeyboardShortcuts.get(name)?.nsMenuItemKeyEquivalent ?? ""
-                item.keyEquivalentModifierMask = KeyboardShortcuts.get(name)?.modifiers ?? []
+                item.keyEquivalent = KeyboardShortcuts.getShortcut(for: name)?.nsMenuItemKeyEquivalent ?? ""
+                item.keyEquivalentModifierMask = KeyboardShortcuts.getShortcut(for: name)?.modifiers ?? []
             }
         }
     }
