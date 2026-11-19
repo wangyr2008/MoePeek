@@ -16,7 +16,7 @@ concurrency:
 jobs:
   test:
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,6 +41,30 @@ jobs:
             MACOSX_DEPLOYMENT_TARGET=12.0 \
             CODE_SIGNING_ALLOWED=NO
 
+      - name: Build ad-hoc signed app artifact
+        if: success()
+        run: |
+          xcodebuild archive \
+            -workspace MoePeek.xcworkspace \
+            -scheme MoePeek \
+            -configuration Release \
+            -archivePath build/MoePeek.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            VALIDATE_STRINGS_FILES_WHILE_COPYING=NO \
+            MACOSX_DEPLOYMENT_TARGET=12.0
+          APP="build/MoePeek.xcarchive/Products/Applications/MoePeek.app"
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --strict "$APP"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" MoePeek-macos12-13.zip
+
+      - name: Upload app artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MoePeek-macos12-13-app
+          path: MoePeek-macos12-13.zip
+          retention-days: 30
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -49,3 +73,4 @@ jobs:
           path: build/Tests.xcresult
           if-no-files-found: ignore
           retention-days: 14
+
