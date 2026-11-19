@@ -182,9 +182,10 @@ private struct GoogleTranslateSettingsView: View {
             }
             testID = nil
         }
-        .onChange(of: proxyEnabled) { resetTest() }
-        .onChange(of: proxyHost) { resetTest() }
-        .onChange(of: proxyPort) { resetTest() }
+        // Zero-parameter `onChange` is macOS 14+; use the one-parameter form.
+        .onChange(of: proxyEnabled) { _ in resetTest() }
+        .onChange(of: proxyHost) { _ in resetTest() }
+        .onChange(of: proxyPort) { _ in resetTest() }
         .onDisappear { resetTest() }
     }
 

@@ -160,23 +160,35 @@ private actor BingTokenManager {
             throw TranslationError.invalidResponse
         }
 
+        // Extract IG / IID / params_AbusePreventionHelper. Swift Regex literals require
+        // macOS 13 on current toolchains, so NSRegularExpression keeps macOS 12 working.
+        func firstCapturedGroup(_ pattern: String, in html: String) -> String? {
+            let regex = try! NSRegularExpression(pattern: pattern)
+            let ns = html as NSString
+            guard let match = regex.firstMatch(
+                in: html,
+                range: NSRange(location: 0, length: ns.length)
+            ), match.numberOfRanges >= 2 else { return nil }
+            return ns.substring(with: match.range(at: 1))
+        }
+
         // Extract IG
-        guard let igMatch = html.firstMatch(of: /IG:"([^"]+)"/) else {
+        guard let ig = firstCapturedGroup(#"IG:"([^"]+)""#, in: html) else {
             throw BingTokenError.parseFailure("IG")
         }
-        let ig = String(igMatch.1)
 
         // Extract IID
-        guard let iidMatch = html.firstMatch(of: /data-iid="([^"]+)"/) else {
+        guard let iid = firstCapturedGroup(#"data-iid="([^"]+)""#, in: html) else {
             throw BingTokenError.parseFailure("IID")
         }
-        let iid = String(iidMatch.1)
 
         // Extract params_AbusePreventionHelper = [key, token, expiryInterval, ...]
-        guard let paramsMatch = html.firstMatch(of: /params_AbusePreventionHelper\s*=\s*(\[[^\]]+\])/) else {
+        guard let paramsJSON = firstCapturedGroup(
+            #"params_AbusePreventionHelper\s*=\s*(\[[^\]]+\])"#,
+            in: html
+        ) else {
             throw BingTokenError.parseFailure("params_AbusePreventionHelper")
         }
-        let paramsJSON = String(paramsMatch.1)
 
         guard let paramsData = paramsJSON.data(using: .utf8),
               let paramsArray = try? JSONSerialization.jsonObject(with: paramsData) as? [Any],
