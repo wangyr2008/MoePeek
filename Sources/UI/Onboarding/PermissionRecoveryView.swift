@@ -44,8 +44,9 @@ struct PermissionRecoveryView: View {
 
             Spacer()
         }
-        .onChange(of: permissionManager.allPermissionsGranted) {
-            if permissionManager.allPermissionsGranted {
+        // Zero-parameter `onChange` is macOS 14+; the one-parameter form works on macOS 12.
+        .onChange(of: permissionManager.allPermissionsGranted) { granted in
+            if granted {
                 onAllGranted()
             }
         }

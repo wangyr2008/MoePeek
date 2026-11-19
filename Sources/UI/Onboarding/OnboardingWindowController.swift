@@ -62,7 +62,7 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
 
     private func presentWindow(contentView: some View, size: NSSize) {
         if let window, window.isVisible {
-            NSApp.activate()
+            NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
             return
         }
@@ -92,7 +92,7 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
         // orderFrontRegardless is more reliable than makeKeyAndOrderFront during app launch,
         // because the app may not yet be the active app in the window server.
         window.orderFrontRegardless()
-        NSApp.activate()
+        NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
 
