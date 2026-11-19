@@ -5,7 +5,6 @@ struct SettingsView: View {
     let registry: TranslationProviderRegistry
     let ttsRegistry: TTSProviderRegistry
     let ttsCoordinator: TTSCoordinator
-    let updaterController: UpdaterController?
 
     @Default(.selectedSettingsTab) private var selectedTab
 
@@ -52,7 +51,7 @@ struct SettingsView: View {
                 }
                 .tag(SettingsTab.audio)
 
-            AboutSettingsView(updaterController: updaterController)
+            AboutSettingsView()
                 .tabItem {
                     Label("About", systemImage: "info.circle")
                 }

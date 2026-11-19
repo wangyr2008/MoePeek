@@ -131,6 +131,6 @@ private struct DeepLSettingsView: View {
                 .font(.caption)
             }
         }
-        .formStyle(.grouped)
+        .compatFormStyleGrouped()
     }
 }

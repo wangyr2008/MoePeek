@@ -10,7 +10,7 @@ struct ParallelModelsList: View {
     let fetchedModels: [String]
     /// Binding to the set of user-enabled model IDs (excludes default model).
     @Binding var enabledModels: Set<String>
-    let metaService: ModelMetadataService
+    @ObservedObject var metaService: ModelMetadataService
     /// Current default model ID — always shown as checked & locked.
     let defaultModel: String
 
@@ -180,7 +180,7 @@ struct ParallelModelsList: View {
                 enabledModels.remove(defaultModel)
             }
         }
-        .onChange(of: defaultModel) { _, newDefault in
+        .onChange(of: defaultModel) { newDefault in
             if enabledModels.contains(newDefault) {
                 enabledModels.remove(newDefault)
             }

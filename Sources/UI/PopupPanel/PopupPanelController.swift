@@ -124,7 +124,7 @@ final class PopupPanelController {
         panel?.contentView = nil
         panel?.close()
         // Recreate panel on next show to ensure a fresh SwiftUI view tree,
-        // avoiding stale @Observable state from previous translation sessions.
+        // avoiding stale observable state from previous translation sessions.
         panel = nil
         resultLayout = PopupResultLayout()
         coordinator.dismiss()
@@ -171,11 +171,10 @@ final class PopupPanelController {
             )
             .environment(\.popupPanel, newPanel)
             .environment(\.ttsCoordinator, ttsCoordinator)
-            let hostingView = NSHostingView(rootView: contentView)
-            // Prevent NSHostingView from auto-resizing the window on content changes,
-            // which causes an infinite constraint update loop during streaming.
-            hostingView.sizingOptions = []
-            newPanel.contentView = hostingView
+            // Compat.hostingView disables NSHostingView's window auto-resizing on macOS 13+
+            // (sizingOptions = []) and falls back to a fixed container on macOS 12, preventing
+            // an infinite constraint update loop during streaming.
+            newPanel.contentView = Compat.hostingView(contentView)
             panel = newPanel
             panelMoveObserver = NotificationCenter.default.addObserver(
                 forName: NSWindow.didMoveNotification,
@@ -248,7 +247,7 @@ final class PopupPanelController {
 
         copyShortcutDismissTask?.cancel()
         copyShortcutDismissTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(280))
+            try? await Task.sleep(nanoseconds: 280 * 1_000_000)
             guard !Task.isCancelled else { return }
             self?.dismiss()
         }

@@ -235,6 +235,6 @@ private struct BingTranslateSettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
+        .compatFormStyleGrouped()
     }
 }

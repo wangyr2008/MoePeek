@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Trailing accessory for a model text field: fetch progress, model dropdown, or refresh button.
 struct ModelFetchAccessory: View {
-    let connectionManager: OpenAIConnectionManager
+    @ObservedObject var connectionManager: OpenAIConnectionManager
     @Binding var model: String
     let baseURL: String
     let apiKey: String
@@ -47,7 +47,7 @@ struct ModelFetchAccessory: View {
 
 /// Connection test button with progress indicator and result display.
 struct ConnectionTestView: View {
-    let connectionManager: OpenAIConnectionManager
+    @ObservedObject var connectionManager: OpenAIConnectionManager
     let baseURL: String
     let apiKey: String
     let model: String

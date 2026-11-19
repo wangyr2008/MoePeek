@@ -2,7 +2,7 @@ import Defaults
 import SwiftUI
 
 struct AddCustomProviderSheet: View {
-    let registry: TranslationProviderRegistry
+    @ObservedObject var registry: TranslationProviderRegistry
     @Binding var selectedProviderID: String?
     @Environment(\.dismiss) private var dismiss
 
@@ -30,7 +30,7 @@ struct AddCustomProviderSheet: View {
                 TextField("Default Model:", text: $defaultModel, prompt: Text(verbatim: "gpt-4o-mini"))
                 SecureField("API Key:", text: $apiKey, prompt: Text(verbatim: "sk-... (Optional)"))
             }
-            .formStyle(.grouped)
+            .compatFormStyleGrouped()
 
             HStack {
                 Spacer()

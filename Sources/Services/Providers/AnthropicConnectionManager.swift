@@ -1,19 +1,20 @@
+import Combine
 import Foundation
 
 /// Manager for testing connections and fetching models from the Anthropic API.
-@MainActor @Observable
-final class AnthropicConnectionManager {
+@MainActor
+final class AnthropicConnectionManager: ObservableObject {
 
     // MARK: - Connection Test State
 
-    var isTestingConnection = false
-    var testResult: TestResult?
+    @Published var isTestingConnection = false
+    @Published var testResult: TestResult?
 
     // MARK: - Model Fetch State
 
-    var fetchedModels: [String] = []
-    var isFetchingModels = false
-    var modelFetchError: String?
+    @Published var fetchedModels: [String] = []
+    @Published var isFetchingModels = false
+    @Published var modelFetchError: String?
 
     enum TestResult: Equatable {
         case success(latencyMs: Int)
@@ -122,10 +123,10 @@ final class AnthropicConnectionManager {
             return
         }
 
-        let start = ContinuousClock.now
+        let start = Date()
         do {
             let (data, response) = try await translationURLSession.data(for: request)
-            let ms = Int((ContinuousClock.now - start) / .milliseconds(1))
+            let ms = Int(Date().timeIntervalSince(start) * 1000)
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 testResult = .failure(message: String(localized: "Invalid response"))

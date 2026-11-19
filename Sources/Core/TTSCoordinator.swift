@@ -1,9 +1,9 @@
+import Combine
 import Defaults
 import Foundation
-import Observation
 
-@MainActor @Observable
-final class TTSCoordinator {
+@MainActor
+final class TTSCoordinator: ObservableObject {
     enum PlaybackState: Equatable {
         case idle
         case loading
@@ -11,9 +11,9 @@ final class TTSCoordinator {
         case error(String)
     }
 
-    private(set) var playbackState: PlaybackState = .idle
+    @Published private(set) var playbackState: PlaybackState = .idle
     /// The text currently being spoken, used to scope UI state per-button.
-    private(set) var currentText: String?
+    @Published private(set) var currentText: String?
     private var speakTask: Task<Void, Never>?
     private var activePlaybackProvider: (any TTSProvider)?
 

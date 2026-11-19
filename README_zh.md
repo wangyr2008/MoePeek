@@ -15,10 +15,22 @@
 <p align="center">
   <a href="https://github.com/cosZone/MoePeek/releases/latest"><img src="https://img.shields.io/github/v/release/cosZone/MoePeek" alt="GitHub Release" /></a>
   <a href="https://github.com/cosZone/MoePeek/releases"><img src="https://img.shields.io/github/downloads/cosZone/MoePeek/total" alt="Downloads" /></a>
-  <img src="https://img.shields.io/badge/platform-macOS%2015%2B-blue" alt="Platform" />
+  <img src="https://img.shields.io/badge/platform-macOS%2012%2B-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/swift-6.0-orange" alt="Swift" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-green" alt="License" /></a>
 </p>
+
+> [!IMPORTANT]
+> **这是 [cosZone/MoePeek](https://github.com/cosZone/MoePeek) 的 fork,为 macOS 12 (Monterey) 和 macOS 13 (Ventura) 做了向下兼容**,基于上游 v0.21.0。
+>
+> **与上游的差异**:
+> - 最低系统要求从 macOS 15 降到 **macOS 12**
+> - 移除 Apple 系统翻译(macOS 15 独占框架)——其余 10+ 翻译服务全部保留
+> - 移除 Sparkle 自动更新(fork 构建不做正式签名);Markdown 渲染从 Textual 换为 MarkdownUI(同为 macOS 12 兼容)
+> - 菜单栏改为 AppKit `NSStatusItem` 实现;`@Observable` 降级为 `ObservableObject`(macOS 14+ API)
+>
+> **安装**(CI 产物为 ad-hoc 签名):下载 zip 后执行 `xattr -cr MoePeek.app` 再打开;
+> 首次使用需授予「辅助功能」和「屏幕录制」权限。
 
 
 <p align="center">
@@ -37,16 +49,16 @@
 
 **内置翻译服务**
 
-| 免费 | API | LLM | 系统 |
-|------|-----|-----|------|
-| Google 翻译 | DeepL | OpenAI | Apple 翻译 |
-| Bing 翻译 | 百度翻译 | Anthropic | *（macOS 15+，离线可用）* |
-| 有道翻译 | 小牛翻译 | DeepSeek | |
-| | 彩云小译 | OpenRouter | |
-| | DeepLX | Requesty | |
-| | | 智谱 GLM | |
-| | | Ollama（本地） | |
-| | | LM Studio（本地） | |
+| 免费 | API | LLM |
+|------|-----|-----|
+| Google 翻译 | DeepL | OpenAI |
+| Bing 翻译 | 百度翻译 | Anthropic |
+| 有道翻译 | 小牛翻译 | DeepSeek |
+| | 彩云小译 | OpenRouter |
+| | DeepLX | Requesty |
+| | | 智谱 GLM |
+| | | Ollama（本地） |
+| | | LM Studio（本地） |
 
 **更多特性**
 

@@ -5,8 +5,6 @@ import KeyboardShortcuts
 /// Handles app lifecycle, permission checks, and global shortcut registration.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    // registry must be available before applicationDidFinishLaunching because
-    // SwiftUI evaluates MoePeekApp.body (which reads registry) during app init.
     lazy var registry = TranslationProviderRegistry.builtIn()
     lazy var ttsRegistry = TTSProviderRegistry.builtIn()
     lazy var ttsCoordinator = TTSCoordinator(registry: ttsRegistry)
@@ -17,10 +15,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var selectionMonitor: SelectionMonitor!
     var triggerIconController: TriggerIconController!
     lazy var copyToastController = CopyToastController()
-    lazy var updaterController = UpdaterController()
     var settingsController: SettingsWindowController!
+    private var menuBarManager: MenuBarManager?
     private var smartTranslationTask: Task<Void, Never>?
     private var smartTranslationTaskID: UUID?
+
+    // Manual AppKit lifecycle (no SwiftUI scene): without this override, closing the
+    // Settings window would terminate the app once it becomes the last open window.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
 
     func applicationDidFinishLaunching(_: Notification) {
         applyLanguageOverride()
@@ -33,8 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsController = SettingsWindowController(
             registry: registry,
             ttsRegistry: ttsRegistry,
-            ttsCoordinator: ttsCoordinator,
-            updaterController: updaterController
+            ttsCoordinator: ttsCoordinator
         )
         panelController = PopupPanelController(
             coordinator: coordinator,
@@ -47,6 +50,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Apply dock visibility — always set explicitly because macOS may cache
         // .regular from a previous session, ignoring LSUIElement on relaunch.
         NSApp.setActivationPolicy(Defaults[.showInDock] ? .regular : .accessory)
+
+        let menuBar = MenuBarManager(appDelegate: self)
+        menuBar.install()
+        menuBarManager = menuBar
 
         setupShortcuts()
         setupSelectionMonitor()
@@ -176,7 +183,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let preferred = UserDefaults.standard.string(forKey: "preferredService") {
             var enabled: Set<String> = []
             if preferred == "apple" {
-                enabled = ["apple"]
+                // The Apple Translation provider (macOS 15+) is not available in this build;
+                // fall back to a free provider instead of leaving a dangling selection.
+                enabled = ["google"]
             } else {
                 enabled = ["openai"]
             }
@@ -210,7 +219,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// V3: Remove provider IDs that no longer exist; fall back to default if none remain.
     private func migrateV3RemovedProviders() {
-        let removedIDs: Set<String> = ["groq", "github-models"]
+        // "apple" is the macOS 15-only Apple Translation provider; this build (macOS 12/13)
+        // does not include it, so any lingering selection is cleaned up here.
+        let removedIDs: Set<String> = ["groq", "github-models", "apple"]
         var enabled = Defaults[.enabledProviders]
         let needsMigration = !enabled.isDisjoint(with: removedIDs)
         if needsMigration {

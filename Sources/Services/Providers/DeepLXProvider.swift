@@ -208,6 +208,6 @@ private struct DeepLXSettingsView: View {
                 .font(.caption)
             }
         }
-        .formStyle(.grouped)
+        .compatFormStyleGrouped()
     }
 }

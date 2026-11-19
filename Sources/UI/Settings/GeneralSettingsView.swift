@@ -40,9 +40,15 @@ struct GeneralSettingsView: View {
         }
     }
 
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var launchAtLogin = false
     @State private var showRestartAlert = false
     @State private var availableFonts = NSFontManager.shared.availableFontFamilies
+
+    /// `SMAppService` is macOS 13+; the Launch-at-Login toggle is hidden on macOS 12.
+    private var launchAtLoginSupported: Bool {
+        if #available(macOS 13.0, *) { return true }
+        return false
+    }
 
     var body: some View {
         Form {
@@ -66,7 +72,7 @@ struct GeneralSettingsView: View {
                         Text(language.displayName).tag(language)
                     }
                 }
-                .onChange(of: appLanguage) { _, newValue in
+                .onChange(of: appLanguage) { newValue in
                     if newValue == .system {
                         UserDefaults.standard.removeObject(forKey: "AppleLanguages")
                     } else {
@@ -76,21 +82,24 @@ struct GeneralSettingsView: View {
                     showRestartAlert = true
                 }
 
-                Toggle("Launch at Login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, newValue in
-                        do {
-                            if newValue {
-                                try SMAppService.mainApp.register()
-                            } else {
-                                try SMAppService.mainApp.unregister()
+                if launchAtLoginSupported {
+                    Toggle("Launch at Login", isOn: $launchAtLogin)
+                        .onChange(of: launchAtLogin) { newValue in
+                            guard #available(macOS 13.0, *) else { return }
+                            do {
+                                if newValue {
+                                    try SMAppService.mainApp.register()
+                                } else {
+                                    try SMAppService.mainApp.unregister()
+                                }
+                            } catch {
+                                launchAtLogin = !newValue // Revert on failure
                             }
-                        } catch {
-                            launchAtLogin = !newValue // Revert on failure
                         }
-                    }
+                }
 
                 Toggle("Show Dock icon", isOn: $showInDock)
-                    .onChange(of: showInDock) { _, newValue in
+                    .onChange(of: showInDock) { newValue in
                         NSApp.setActivationPolicy(newValue ? .regular : .accessory)
                         if !newValue {
                             NSApp.activate()
@@ -163,7 +172,7 @@ struct GeneralSettingsView: View {
                 }
 
                 if sourceLanguage == "auto" {
-                    LabeledContent("Detection Sensitivity: \(confidenceThreshold, specifier: "%.1f")") {
+                    CompatLabeledContent("Detection Sensitivity: \(confidenceThreshold, specifier: "%.1f")") {
                         Slider(value: $confidenceThreshold, in: 0.1...0.8, step: 0.1)
                     }
                     Text("Lower = more aggressive detection (may be inaccurate); Higher = more conservative (may return unknown)")
@@ -175,7 +184,7 @@ struct GeneralSettingsView: View {
             Section("Popup Panel") {
                 Toggle("Remember Last Popup Position", isOn: $popupRememberPosition)
 
-                LabeledContent("Default Width: \(popupDefaultWidth)") {
+                CompatLabeledContent("Default Width: \(popupDefaultWidth)") {
                     Slider(
                         value: Binding(
                             get: { Double(popupDefaultWidth) },
@@ -186,7 +195,7 @@ struct GeneralSettingsView: View {
                     )
                 }
 
-                LabeledContent("Default Height: \(popupDefaultHeight)") {
+                CompatLabeledContent("Default Height: \(popupDefaultHeight)") {
                     Slider(
                         value: Binding(
                             get: { Double(popupDefaultHeight) },
@@ -197,7 +206,7 @@ struct GeneralSettingsView: View {
                     )
                 }
 
-                LabeledContent("Font Size: \(popupFontSize)") {
+                CompatLabeledContent("Font Size: \(popupFontSize)") {
                     Slider(
                         value: Binding(
                             get: { Double(popupFontSize) },
@@ -222,8 +231,13 @@ struct GeneralSettingsView: View {
                 Toggle("Render Markdown in results", isOn: $renderMarkdownResults)
             }
         }
-        .formStyle(.grouped)
+        .compatFormStyleGrouped()
         .padding()
+        .onAppear {
+            if #available(macOS 13.0, *) {
+                launchAtLogin = SMAppService.mainApp.status == .enabled
+            }
+        }
         .alert("App Language", isPresented: $showRestartAlert) {
             Button("Restart Now") { AppRelaunch.relaunch() }
             Button("Later", role: .cancel) { }
@@ -339,7 +353,7 @@ struct GeneralSettingsView: View {
         let customIcon = MenuBarIconStore.loadCustomIcon(isTemplate: menuBarCustomIconIsTemplate)
         let hasCustomIcon = customIcon != nil
 
-        LabeledContent("Image:") {
+        CompatLabeledContent("Image:") {
             HStack(spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 6)

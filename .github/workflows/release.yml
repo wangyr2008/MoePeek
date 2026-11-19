@@ -21,7 +21,6 @@ permissions:
 jobs:
   build:
     runs-on: macos-26
-    environment: Prod
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,49 +35,19 @@ jobs:
         with:
           install: true
 
-      - name: Import signing certificate
-        uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.SIGNING_CERTIFICATE_P12 }}
-          p12-password: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
-
       - name: Write Signing.xcconfig
-        env:
-          DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
-          SPARKLE_ED_PUBLIC_KEY: ${{ secrets.SPARKLE_ED_PUBLIC_KEY }}
         run: |
-          SIGNING_IDENTITIES=$(
-            security find-identity -v -p codesigning signing_temp.keychain |
-              awk '$1 ~ /^[0-9]+\)$/ { print $2 }' |
-              sort -u
-          )
-          SIGNING_IDENTITY_COUNT=$(
-            printf '%s\n' "$SIGNING_IDENTITIES" |
-              awk 'NF { count++ } END { print count + 0 }'
-          )
-          if [ "$SIGNING_IDENTITY_COUNT" -ne 1 ]; then
-            echo "::error::Expected exactly one valid code-signing identity in the imported P12, found $SIGNING_IDENTITY_COUNT. Renew an expired certificate or export a P12 containing one certificate and its private key."
-            exit 1
-          fi
-          SIGNING_IDENTITY_HASH=$SIGNING_IDENTITIES
-
+          # This fork builds unsigned archives; the app is ad-hoc signed afterwards
+          # so it can be redistributed as a plain artifact. No Apple Developer
+          # certificate or Sparkle EdDSA key is required.
           cat > Configurations/Signing.xcconfig << EOF
           MOEPEEK_CODE_SIGN_STYLE = Manual
-          MOEPEEK_CODE_SIGN_IDENTITY = $SIGNING_IDENTITY_HASH
-          MOEPEEK_DEVELOPMENT_TEAM = $DEVELOPMENT_TEAM
-          SPARKLE_ED_PUBLIC_KEY = $SPARKLE_ED_PUBLIC_KEY
+          MOEPEEK_CODE_SIGN_IDENTITY = -
+          MOEPEEK_DEVELOPMENT_TEAM =
           EOF
 
       - name: Resolve dependencies and generate project
         run: tuist install && tuist generate
-
-      # Textual pulls in swiftui-math, whose bundled math fonts add ~7 MB. MoePeek never enables
-      # the math syntax extension and SwiftUIMath loads fonts lazily, so the files are dead weight.
-      # Deleting them before the build keeps the code signature intact.
-      - name: Strip unused math fonts
-        run: |
-          find .build/checkouts/swiftui-math/Sources/SwiftUIMath/mathFonts.bundle \
-            \( -name '*.otf' -o -name '*.plist' \) -delete
 
       - name: Determine version
         id: version
@@ -99,7 +68,7 @@ jobs:
             -scheme MoePeek \
             -destination 'platform=macOS' \
             -resultBundlePath build/Tests.xcresult \
-            MACOSX_DEPLOYMENT_TARGET=15.0
+            MACOSX_DEPLOYMENT_TARGET=12.0
 
       - name: Upload test results
         if: always()
@@ -117,22 +86,19 @@ jobs:
             -scheme MoePeek \
             -configuration Release \
             -archivePath build/MoePeek.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
             VALIDATE_STRINGS_FILES_WHILE_COPYING=NO \
             MARKETING_VERSION=${{ steps.version.outputs.version }} \
             CURRENT_PROJECT_VERSION=${{ github.run_number }}
 
-      - name: Verify code signature
+      - name: Ad-hoc sign app bundle
         run: |
           APP="build/MoePeek.xcarchive/Products/Applications/MoePeek.app"
+          # Ad-hoc signature keeps TCC grants tied to a stable identity per build and
+          # satisfies Sparkle/XPC integrity checks. Gatekeeper still flags downloads;
+          # users run `xattr -cr MoePeek.app` before first launch (see README).
+          codesign --force --deep --sign - "$APP"
           codesign --verify --strict "$APP"
-
-          SIGN_INFO=$(codesign -dvvv "$APP" 2>&1)
-          echo "$SIGN_INFO" | grep -E "Authority|Identifier|TeamIdentifier"
-
-          if echo "$SIGN_INFO" | grep -q "TeamIdentifier=not set"; then
-            echo "::error::Code signature has no TeamIdentifier (ad-hoc signing). Check SIGNING_IDENTITY and SIGNING_CERTIFICATE secrets."
-            exit 1
-          fi
 
       - name: Prepare app bundle
         run: |
@@ -142,36 +108,7 @@ jobs:
       - name: Create ZIP
         run: |
           ditto -c -k --sequesterRsrc --keepParent build/app/MoePeek.app \
-            "MoePeek-v${{ steps.version.outputs.version }}-macOS.zip"
-
-      - name: Package PopClip Extension
-        run: |
-          ditto -c -k --sequesterRsrc --keepParent \
-            PopClipExtension/MoePeek.popclipext \
-            "MoePeek.popclipext.zip"
-
-      - name: Package OpenClip Extension
-        run: |
-          ditto -c -k --sequesterRsrc --keepParent \
-            OpenClipExtension/MoePeek.openclipext \
-            "MoePeek.openclipext.zip"
-
-      - name: Check Sparkle signing key
-        id: sparkle
-        run: |
-          if [ -n "$SPARKLE_KEY" ]; then
-            echo "has_key=true" >> "$GITHUB_OUTPUT"
-          fi
-        env:
-          SPARKLE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
-
-      - name: Download Sparkle CLI tools
-        if: steps.sparkle.outputs.has_key == 'true'
-        run: |
-          SPARKLE_VERSION=$(python3 -c "import json; pins=json.load(open('Package.resolved'))['pins']; print(next(p['state']['version'] for p in pins if p['identity']=='sparkle'))")
-          echo "Using Sparkle CLI v${SPARKLE_VERSION} (from Package.resolved)"
-          mkdir -p /tmp/sparkle
-          curl -sL "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz" | tar xJ -C /tmp/sparkle
+            "MoePeek-v${{ steps.version.outputs.version }}-macOS12-13.zip"
 
       - name: Create DMG
         run: |
@@ -183,28 +120,9 @@ jobs:
             --icon "MoePeek.app" 180 170 \
             --app-drop-link 480 170 \
             --hide-extension "MoePeek.app" \
-            "MoePeek-v${{ steps.version.outputs.version }}-macOS.dmg" \
+            "MoePeek-v${{ steps.version.outputs.version }}-macOS12-13.dmg" \
             build/app/ \
             || test $? -eq 1
-
-      - name: Generate appcast
-        if: steps.sparkle.outputs.has_key == 'true'
-        env:
-          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
-        run: |
-          mkdir -p build/release
-          cp "MoePeek-v${{ steps.version.outputs.version }}-macOS.zip" build/release/
-
-          # Download existing appcast to preserve history (skip if first release or invalid)
-          curl -sfL "https://github.com/cosZone/MoePeek/releases/latest/download/appcast.xml" \
-            -o appcast.xml || rm -f appcast.xml
-
-          DOWNLOAD_URL="https://github.com/cosZone/MoePeek/releases/download/v${{ steps.version.outputs.version }}"
-          /tmp/sparkle/bin/generate_appcast \
-            --ed-key-file <(echo "$SPARKLE_ED_PRIVATE_KEY") \
-            --download-url-prefix "$DOWNLOAD_URL/" \
-            -o appcast.xml \
-            build/release/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -214,8 +132,5 @@ jobs:
           draft: ${{ github.event_name == 'workflow_dispatch' }}
           generate_release_notes: true
           files: |
-            MoePeek-v${{ steps.version.outputs.version }}-macOS.zip
-            MoePeek-v${{ steps.version.outputs.version }}-macOS.dmg
-            MoePeek.popclipext.zip
-            MoePeek.openclipext.zip
-            appcast.xml
+            MoePeek-v${{ steps.version.outputs.version }}-macOS12-13.zip
+            MoePeek-v${{ steps.version.outputs.version }}-macOS12-13.dmg

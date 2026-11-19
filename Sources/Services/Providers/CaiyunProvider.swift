@@ -125,6 +125,6 @@ private struct CaiyunSettingsView: View {
                 .font(.caption)
             }
         }
-        .formStyle(.grouped)
+        .compatFormStyleGrouped()
     }
 }

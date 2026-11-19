@@ -3,9 +3,9 @@ import SwiftUI
 
 /// Settings view for TTS configuration: service selection, preferences, and testing.
 struct TTSSettingsView: View {
-    let registry: TTSProviderRegistry
-    let translationRegistry: TranslationProviderRegistry
-    let coordinator: TTSCoordinator
+    @ObservedObject var registry: TTSProviderRegistry
+    @ObservedObject var translationRegistry: TranslationProviderRegistry
+    @ObservedObject var coordinator: TTSCoordinator
 
     @Default(.ttsProvider) private var selectedProviderID
     @Default(.ttsAccent) private var accent
@@ -66,11 +66,11 @@ struct TTSSettingsView: View {
                 }
 
                 Toggle("Auto-play source text", isOn: $autoPlaySource)
-                    .onChange(of: autoPlaySource) { _, on in
+                    .onChange(of: autoPlaySource) { on in
                         if on { autoPlayTarget = false }
                     }
                 Toggle("Auto-play translation result", isOn: $autoPlayTarget)
-                    .onChange(of: autoPlayTarget) { _, on in
+                    .onChange(of: autoPlayTarget) { on in
                         if on { autoPlaySource = false }
                     }
                 if autoPlayTarget {
@@ -126,8 +126,7 @@ struct TTSSettingsView: View {
             // MARK: - Test
 
             Section {
-                TextField("Test text", text: $testText, axis: .vertical)
-                    .lineLimit(1 ... 3)
+                TextField("Test text", text: $testText)
 
                 Picker("Language", selection: $testLanguage) {
                     ForEach(SupportedLanguages.all, id: \.code) { lang in
@@ -167,7 +166,7 @@ struct TTSSettingsView: View {
                 Text("Test")
             }
         }
-        .formStyle(.grouped)
+        .compatFormStyleGrouped()
     }
 
     private func languageRateBinding(for code: String) -> Binding<Double> {

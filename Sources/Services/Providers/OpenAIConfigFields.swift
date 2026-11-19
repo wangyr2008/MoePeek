@@ -9,7 +9,7 @@ struct OpenAIConfigFields: View {
     let provider: OpenAICompatibleProvider
     var compact: Bool = false
 
-    @State private var connectionManager: OpenAIConnectionManager
+    @StateObject private var connectionManager: OpenAIConnectionManager
     @State private var baseURLText: String
     @State private var apiKeyText: String
     @State private var modelText: String
@@ -19,7 +19,7 @@ struct OpenAIConfigFields: View {
     init(provider: OpenAICompatibleProvider, compact: Bool = false) {
         self.provider = provider
         self.compact = compact
-        self._connectionManager = State(initialValue: OpenAIConnectionManager())
+        self._connectionManager = StateObject(wrappedValue: OpenAIConnectionManager())
         self._baseURLText = State(initialValue: Defaults[provider.baseURLKey])
         self._apiKeyText = State(initialValue: Defaults[provider.apiKeyKey])
         self._modelText = State(initialValue: Defaults[provider.modelKey])
@@ -96,7 +96,7 @@ struct OpenAIConfigFields: View {
                     }
                 }
             }
-            .formStyle(.grouped)
+            .compatFormStyleGrouped()
         }
     }
 
@@ -155,11 +155,11 @@ struct OpenAIConfigFields: View {
                 extraHeaders: provider.extraHeaders
             )
         }
-        .onChange(of: baseURLText) { _, newValue in
+        .onChange(of: baseURLText) { newValue in
             Defaults[provider.baseURLKey] = newValue
             connectionManager.clearModels()
         }
-        .onChange(of: apiKeyText) { _, newValue in
+        .onChange(of: apiKeyText) { newValue in
             Defaults[provider.apiKeyKey] = newValue
             connectionManager.clearModels()
         }

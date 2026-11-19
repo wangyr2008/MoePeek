@@ -113,8 +113,8 @@ struct LocalLLMSettingsView: View {
                 }
             }
         }
-        .formStyle(.grouped)
-        .onChange(of: baseURLText) { _, newValue in
+        .compatFormStyleGrouped()
+        .onChange(of: baseURLText) { newValue in
             Defaults[baseURLKey] = newValue
             availableModels = []
             testResult = nil

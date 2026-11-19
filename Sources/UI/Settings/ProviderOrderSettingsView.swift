@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Settings view for reordering enabled translation providers via drag-and-drop.
 struct ProviderOrderSettingsView: View {
-    let registry: TranslationProviderRegistry
+    @ObservedObject var registry: TranslationProviderRegistry
 
     @Default(.enabledProviders) private var enabledProviders
     @Default(.providerOrder) private var providerOrder
@@ -30,11 +30,11 @@ struct ProviderOrderSettingsView: View {
                 .padding(.bottom, 12)
 
             if orderedProviders.isEmpty {
-                ContentUnavailableView(
-                    "No Providers Enabled",
+                CompatUnavailableView(
+                    title: "No Providers Enabled",
                     systemImage: "globe",
-                    description: Text("Enable at least one provider in the Services tab to configure display order.")
-                )
+                    description: "Enable at least one provider in the Services tab to configure display order."
+                    )
             } else {
                 List {
                     ForEach(orderedProviders, id: \.id) { provider in
@@ -57,7 +57,7 @@ struct ProviderOrderSettingsView: View {
                     }
                 }
                 .listStyle(.inset(alternatesRowBackgrounds: true))
-                .scrollContentBackground(.hidden)
+                .compatScrollContentBackgroundHidden()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

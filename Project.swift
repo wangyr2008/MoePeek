@@ -22,13 +22,11 @@ let project = Project(
             destinations: .macOS,
             product: .app,
             bundleId: "com.nahida.MoePeek",
-            deploymentTargets: .macOS("15.0"),
+            deploymentTargets: .macOS("12.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleDevelopmentRegion": "en",
                 "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
-                "SUFeedURL": "https://github.com/cosZone/MoePeek/releases/latest/download/appcast.xml",
-                "SUPublicEDKey": "$(SPARKLE_ED_PUBLIC_KEY)",
                 "CFBundleURLTypes": [
                     [
                         "CFBundleURLName": "com.nahida.MoePeek",
@@ -42,8 +40,7 @@ let project = Project(
             dependencies: [
                 .external(name: "KeyboardShortcuts"),
                 .external(name: "Defaults"),
-                .external(name: "Sparkle"),
-                .external(name: "Textual"),
+                .external(name: "MarkdownUI"),
             ],
             settings: .settings(
                 base: [
@@ -64,7 +61,7 @@ let project = Project(
             destinations: .macOS,
             product: .unitTests,
             bundleId: "com.nahida.MoePeekTests",
-            deploymentTargets: .macOS("15.0"),
+            deploymentTargets: .macOS("12.0"),
             sources: ["Tests/**"],
             dependencies: [
                 .target(name: "MoePeek"),

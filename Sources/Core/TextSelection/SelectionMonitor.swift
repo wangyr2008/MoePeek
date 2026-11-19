@@ -63,7 +63,7 @@ final class SelectionMonitor {
         isSuppressed = true
         suppressTask?.cancel()
         suppressTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(500))
+            try? await Task.sleep(nanoseconds: 500 * 1_000_000)
             guard !Task.isCancelled else { return }
             self?.isSuppressed = false
         }
@@ -95,7 +95,7 @@ final class SelectionMonitor {
             let clipboardCountAtMouseUp = NSPasteboard.general.changeCount
 
             // Wait 100ms for the target app to update its AX selection state
-            try? await Task.sleep(for: .milliseconds(100))
+            try? await Task.sleep(nanoseconds: 100 * 1_000_000)
             guard let self, !Task.isCancelled else { return }
 
             // Tier 1: Accessibility API — fast, non-invasive
@@ -108,7 +108,7 @@ final class SelectionMonitor {
             // Tier 1 read can miss it and fall through to the clipboard tiers, which may
             // surface stale clipboard content instead. Retry Tier 1 once. See issue #59.
             if clickCount >= 2 {
-                try? await Task.sleep(for: .milliseconds(120))
+                try? await Task.sleep(nanoseconds: 120 * 1_000_000)
                 guard !Task.isCancelled else { return }
                 if self.deliver(AccessibilityGrabber.grabSelectedText(near: point), at: point) { return }
             }

@@ -1,5 +1,12 @@
 # 发版指南
 
+> **本 fork (macOS 12/13 兼容版) 的差异**：Release workflow 不再需要任何 GitHub Secrets ——
+> 归档以未签名方式构建，随后用 ad-hoc 签名(`codesign --sign -`)打包为 zip/dmg 发布。
+> Sparkle 自动更新已移除，无需 EdDSA 密钥。推送 `v*` tag 或手动触发 workflow 即可发布。
+> 由于是 ad-hoc 签名，用户首次运行前需执行 `xattr -cr MoePeek.app` 绕过 Gatekeeper,
+> 且系统权限(辅助功能/屏幕录制)在每次换版本后可能需要重新授权。
+> 以下内容为上游 cosZone/MoePeek 使用正式证书签名的发版流程，仅作参考。
+
 ## 前置条件
 
 ### GitHub Secrets

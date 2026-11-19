@@ -34,7 +34,8 @@ struct SourceInputView: View {
                 ScrollView {
                     MarkdownResultView(
                         text: text,
-                        font: .popup(name: fontName, size: CGFloat(fontSize)),
+                        fontName: fontName,
+                        fontSize: CGFloat(fontSize),
                         attachments: attachments,
                         showsAttachments: true
                     )
@@ -62,17 +63,16 @@ struct SourceInputView: View {
             }
 
             HStack(spacing: 4) {
-                if let ttsCoordinator {
+                if let tts = ttsCoordinator {
                     let spokenText = MarkdownSupport.speakableText(text)
-                    let speaking = ttsCoordinator.isPlaying(spokenText)
                     Button {
-                        if speaking {
-                            ttsCoordinator.stop()
+                        if tts.isPlaying(spokenText) {
+                            tts.stop()
                         } else {
-                            ttsCoordinator.speak(spokenText, language: sourceLanguage)
+                            tts.speak(spokenText, language: sourceLanguage)
                         }
                     } label: {
-                        Image(systemName: speaking ? "speaker.wave.3.fill" : "speaker.wave.2")
+                        TTSSpeakerIcon(tts: tts, text: spokenText)
                             .font(.popup(name: fontName, size: CGFloat(fontSize - 2)))
                     }
                     .buttonStyle(.plain)

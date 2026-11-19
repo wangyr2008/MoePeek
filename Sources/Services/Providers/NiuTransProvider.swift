@@ -119,6 +119,6 @@ private struct NiuTransSettingsView: View {
                 .font(.caption)
             }
         }
-        .formStyle(.grouped)
+        .compatFormStyleGrouped()
     }
 }

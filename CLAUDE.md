@@ -24,11 +24,37 @@ Unit tests live in `Tests/` (Swift Testing, target `MoePeekTests`); run with `xc
 
 ## Tech Stack
 
-- **Swift 6.0+** with `SWIFT_STRICT_CONCURRENCY: complete`
-- **macOS 15.0+** deployment target, LSUIElement (menu bar app, no Dock icon)
+- **Swift 6.0+** with `SWIFT_STRICT_CONCURRENCY: complete` (built with Xcode 16+/26 in CI)
+- **macOS 12.0+** deployment target (fork: upstream targets macOS 15), LSUIElement (menu bar app, no Dock icon)
 - **SwiftUI + AppKit hybrid**: SwiftUI for views, AppKit NSPanel for non-activating floating windows
-- **Dependencies**: KeyboardShortcuts (sindresorhus), Defaults (sindresorhus), Sparkle, Textual (gonzalezreal, Markdown rendering)
+- **Dependencies**: KeyboardShortcuts (sindresorhus), Defaults (sindresorhus), MarkdownUI (gonzalezreal, Markdown rendering)
 - **License**: AGPL-3.0
+
+### macOS 12/13 Compatibility Fork Notes
+
+This fork back-ports the app to macOS 12/13. Upstream APIs that don't exist there were
+replaced; keep these rules when adding code:
+
+- **No `@Observable` macro** (macOS 14+): observable classes are `ObservableObject` with
+  `@Published` stored properties; views that read their state hold them via `@ObservedObject`
+  (or `@StateObject` when created locally). Environment keys (`.ttsCoordinator`) return the
+  object but do NOT observe it — state-dependent UI must live in a subview that holds the
+  object as `@ObservedObject` (see `TTSSpeakerIcon`).
+- **No `MenuBarExtra`** (macOS 13+): the menu bar presence is an AppKit `NSStatusItem` owned
+  by `MenuBarManager`; the app entry point is `MoePeekMain` (manual `NSApplication` bootstrap,
+  not a SwiftUI `App` scene).
+- **No Apple Translation framework** (macOS 15+): the provider was removed; remaining
+  providers cover translation. Also no Sparkle auto-updater in this fork.
+- **API mapping**: `Task.sleep(for:)` → `Task.sleep(nanoseconds:)`; `ContinuousClock` → `Date()`;
+  `OSAllocatedUnfairLock` → `UnfairLockBox` (Compat.swift); `.formStyle(.grouped)` /
+  `.scrollContentBackground(.hidden)` → `compatFormStyleGrouped()` /
+  `compatScrollContentBackgroundHidden()`; `LabeledContent` → `CompatLabeledContent`;
+  `ContentUnavailableView` → `CompatUnavailableView`; two-parameter `.onChange(of:) { _, v in }`
+  → one-parameter `.onChange(of:) { v in }`; `SMAppService` toggles are gated behind
+  `if #available(macOS 13.0, *)`; `NSHostingView.sizingOptions` → `Compat.hostingView`.
+- **Markdown rendering**: MarkdownUI (macOS 12+) instead of Textual (macOS 15+). Remote
+  images are never fetched — `MarkdownSupport.localizeRemoteImages` plus a no-op
+  `ImageProvider` enforce this.
 
 ## Architecture
 
@@ -39,7 +65,7 @@ User Action (shortcut / mouse selection / OCR)
   → TranslationCoordinator (state machine: idle → grabbing → translating → streaming → completed/error)
     → Text Grabbing: TextSelectionManager (3-tier fallback: AX API → AppleScript → Clipboard)
     → Language Detection: LanguageDetector (NLLanguageRecognizer, auto-flips target if same as detected)
-    → Translation: TranslationService protocol (OpenAI streaming API or Apple Translation on macOS 15+)
+    → Translation: TranslationService protocol (OpenAI streaming API and other providers)
   → PopupPanelController (floating result panel at cursor)
 ```
 

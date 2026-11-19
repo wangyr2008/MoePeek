@@ -66,7 +66,7 @@ enum ClipboardGrabber {
 
         // Install a temporary keyboard monitor to detect real user ⌘+C during the grab window.
         // Our synthetic events are tagged with `syntheticEventTag` via eventSourceUserData.
-        let userCopied = OSAllocatedUnfairLock(initialState: false)
+        let userCopied = UnfairLockBox(initialState: false)
         let keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
             if event.modifierFlags.contains(.command),
                event.keyCode == 0x08, // 'c'
@@ -87,7 +87,7 @@ enum ClipboardGrabber {
             previousCount: previousCount,
             deadline: deadline,
             changeCount: { pasteboard.changeCount },
-            wait: { await sleepIgnoringCancellation(for: .milliseconds(20)) }
+            wait: { await sleepIgnoringCancellation(nanoseconds: 20_000_000) }
         )
 
         // If changeCount didn't change, ⌘C copied nothing — don't return stale clipboard content
@@ -108,7 +108,7 @@ enum ClipboardGrabber {
 
         // 30ms grace period: if the user's real ⌘+C arrives slightly after our polling
         // finishes, the changeCount will bump again.
-        await sleepIgnoringCancellation(for: .milliseconds(30))
+        await sleepIgnoringCancellation(nanoseconds: 30_000_000)
 
         let externalModification = pasteboard.changeCount != postCopyCount || userCopied.withLock { $0 }
 
@@ -144,9 +144,9 @@ enum ClipboardGrabber {
         return changeCount() != previousCount
     }
 
-    private static func sleepIgnoringCancellation(for duration: Duration) async {
+    private static func sleepIgnoringCancellation(nanoseconds: UInt64) async {
         await Task.detached {
-            try? await Task.sleep(for: duration)
+            try? await Task.sleep(nanoseconds: nanoseconds)
         }.value
     }
 
@@ -173,7 +173,7 @@ final class ClipboardAccessGate {
     func acquire() async -> Bool {
         while isLocked {
             do {
-                try await Task.sleep(for: .milliseconds(10))
+                try await Task.sleep(nanoseconds: 10 * 1_000_000)
             } catch {
                 return false
             }

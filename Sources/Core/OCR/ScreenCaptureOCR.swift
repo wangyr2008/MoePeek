@@ -4,7 +4,7 @@ import os
 
 enum ScreenCaptureOCR {
     /// Atomically claim a one-shot flag. Returns `true` on first call, `false` thereafter.
-    private static func claimOnce(_ lock: OSAllocatedUnfairLock<Bool>) -> Bool {
+    private static func claimOnce(_ lock: UnfairLockBox<Bool>) -> Bool {
         lock.withLock { val in
             if val { return false }
             val = true
@@ -25,7 +25,7 @@ enum ScreenCaptureOCR {
 
         let status = try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Int32, Error>) in
-                let resumed = OSAllocatedUnfairLock(initialState: false)
+                let resumed = UnfairLockBox(initialState: false)
 
                 process.terminationHandler = { proc in
                     guard claimOnce(resumed) else { return }
@@ -63,7 +63,7 @@ enum ScreenCaptureOCR {
 
     private static func recognizeText(in image: CGImage) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
-            let resumed = OSAllocatedUnfairLock(initialState: false)
+            let resumed = UnfairLockBox(initialState: false)
 
             let request = VNRecognizeTextRequest { request, error in
                 guard claimOnce(resumed) else { return }

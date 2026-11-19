@@ -4,7 +4,7 @@ import SwiftUI
 
 /// The SwiftUI content displayed inside the popup translation panel.
 struct PopupView: View {
-    let coordinator: TranslationCoordinator
+    @ObservedObject var coordinator: TranslationCoordinator
     var onDismiss: (() -> Void)?
     var onOpenSettings: (() -> Void)?
     @State private var editableText: String = ""
@@ -71,7 +71,7 @@ struct PopupView: View {
         }
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .onChange(of: coordinator.sourceText) { _, newValue in
+        .onChange(of: coordinator.sourceText) { newValue in
             editableText = newValue
             if Defaults[.ttsAutoPlaySource],
                !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -81,7 +81,7 @@ struct PopupView: View {
                 tts.speak(MarkdownSupport.speakableText(newValue), language: lang)
             }
         }
-        .onChange(of: coordinator.targetLanguage) { _, newValue in
+        .onChange(of: coordinator.targetLanguage) { newValue in
             targetLang = newValue
         }
         .onAppear {
@@ -99,14 +99,14 @@ struct PopupView: View {
                 tts.speak(MarkdownSupport.speakableText(coordinator.sourceText), language: lang)
             }
         }
-        .onChange(of: coordinator.translationGeneration) { _, _ in
+        .onChange(of: coordinator.translationGeneration) { _ in
             expandedProviders = Set(coordinator.activeSlots.map(\.id))
         }
-        .onChange(of: coordinator.copiedProviderID) { _, providerID in
+        .onChange(of: coordinator.copiedProviderID) { providerID in
             guard let providerID else { return }
             expandedProviders.insert(providerID)
         }
-        .onChange(of: coordinator.providerStates) { _, newStates in
+        .onChange(of: coordinator.providerStates) { newStates in
             handleAutoPlay(states: newStates)
         }
     }
@@ -196,7 +196,7 @@ struct PopupView: View {
                 }
                 .padding(.horizontal, contentHorizontalPadding)
                 .padding(.vertical, 4)
-                .onChange(of: targetLang) { _, newValue in
+                .onChange(of: targetLang) { newValue in
                     Defaults[.targetLanguage] = newValue
                     // Skip retranslation when this change came from coordinator sync
                     guard newValue != coordinator.targetLanguage else { return }
@@ -204,7 +204,7 @@ struct PopupView: View {
                         coordinator.translate(editableText)
                     }
                 }
-                .onChange(of: sourceLang) { _, newValue in
+                .onChange(of: sourceLang) { newValue in
                     Defaults[.sourceLanguage] = newValue
                     if !editableText.isEmpty {
                         coordinator.translate(editableText)

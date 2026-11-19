@@ -15,10 +15,22 @@
 <p align="center">
   <a href="https://github.com/cosZone/MoePeek/releases/latest"><img src="https://img.shields.io/github/v/release/cosZone/MoePeek" alt="GitHub Release" /></a>
   <a href="https://github.com/cosZone/MoePeek/releases"><img src="https://img.shields.io/github/downloads/cosZone/MoePeek/total" alt="Downloads" /></a>
-  <img src="https://img.shields.io/badge/platform-macOS%2015%2B-blue" alt="Platform" />
+  <img src="https://img.shields.io/badge/platform-macOS%2012%2B-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/swift-6.0-orange" alt="Swift" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-green" alt="License" /></a>
 </p>
+
+> [!IMPORTANT]
+> **This is a fork of [cosZone/MoePeek](https://github.com/cosZone/MoePeek) back-ported to macOS 12 (Monterey) and macOS 13 (Ventura)**, based on upstream v0.21.0.
+>
+> **Differences from upstream:**
+> - Minimum requirement lowered from macOS 15 to **macOS 12**
+> - Apple Translation removed (macOS 15-only framework); all other 10+ translation services kept
+> - Sparkle auto-updater removed (fork builds are ad-hoc signed); Markdown rendering switched from Textual to MarkdownUI (macOS 12 compatible)
+> - Menu bar presence reimplemented with AppKit `NSStatusItem`; `@Observable` downgraded to `ObservableObject` (macOS 14+ API)
+>
+> **Install** (CI artifacts are ad-hoc signed): run `xattr -cr MoePeek.app` after downloading, then open;
+> grant Accessibility and Screen Recording permissions on first launch.
 
 <p align="center">
   <img src="Resources/MoePeek-promo.webp" alt="MoePeek Preview" />
@@ -36,16 +48,16 @@
 
 **Built-in Translation Services**
 
-| Free | API | LLM | System |
-|------|-----|-----|--------|
-| Google Translate | DeepL | OpenAI | Apple Translation |
-| Bing Translate | Baidu | Anthropic | *(macOS 15+, on-device)* |
-| Youdao Translate | NiuTrans | DeepSeek | |
-| | Caiyun | OpenRouter | |
-| | DeepLX | Requesty | |
-| | | 智谱 GLM | |
-| | | Ollama (local) | |
-| | | LM Studio (local) | |
+| Free | API | LLM |
+|------|-----|-----|
+| Google Translate | DeepL | OpenAI |
+| Bing Translate | Baidu | Anthropic |
+| Youdao Translate | NiuTrans | DeepSeek |
+| | Caiyun | OpenRouter |
+| | DeepLX | Requesty |
+| | | 智谱 GLM |
+| | | Ollama (local) |
+| | | LM Studio (local) |
 
 **And More**
 
@@ -55,7 +67,6 @@
 - 3-tier text grabbing: Accessibility API → AppleScript → Clipboard fallback
 - Markdown rendering for LLM results, plus optional rich text capture that keeps formatting and images from apps like Word
 - Fully customizable keyboard shortcuts
-- Built-in auto-updater via Sparkle
 
 ## Why MoePeek
 

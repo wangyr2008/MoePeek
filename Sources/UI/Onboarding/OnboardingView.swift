@@ -1,14 +1,11 @@
 import Defaults
 import SwiftUI
 
-#if canImport(Translation)
-@preconcurrency import Translation
-#endif
-
 /// Step-by-step onboarding view guiding users through required permissions and translation service setup.
+/// The macOS 15-only Apple Translation setup page is not available in this macOS 12/13 build.
 struct OnboardingView: View {
-    let permissionManager: PermissionManager
-    let registry: TranslationProviderRegistry
+    @ObservedObject var permissionManager: PermissionManager
+    @ObservedObject var registry: TranslationProviderRegistry
     var onComplete: () -> Void
 
     @Default(.enabledProviders) private var enabledProviders
@@ -21,7 +18,7 @@ struct OnboardingView: View {
 
     private enum Page: Equatable {
         case welcome, accessibility, screenRecording
-        case providerSelection, openaiSetup, appleTranslation
+        case providerSelection, openaiSetup
     }
 
     private var pages: [Page] {
@@ -29,13 +26,6 @@ struct OnboardingView: View {
         if enabledProviders.contains("openai"), openaiProvider != nil {
             result.append(.openaiSetup)
         }
-        #if canImport(Translation)
-        if #available(macOS 15.0, *),
-           registry.providers.contains(where: { $0.id == "apple" }),
-           enabledProviders.contains("apple") {
-            result.append(.appleTranslation)
-        }
-        #endif
         return result
     }
 
@@ -59,12 +49,11 @@ struct OnboardingView: View {
                     providerSelectionStep
                 case .openaiSetup:
                     openaiSetupStep
-                case .appleTranslation:
-                    appleTranslationStep
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .transition(.push(from: currentPageIndex > 0 ? .trailing : .leading))
+            // `.push(from:)` transitions require macOS 14; opacity works everywhere.
+            .transition(.opacity)
 
             Divider()
 
@@ -134,17 +123,6 @@ struct OnboardingView: View {
                 nextStepButton(
                     title: isLast ? "Get Started" : "Next",
                     isHighlighted: openaiProvider.map { !Defaults[$0.apiKeyKey].isEmpty } ?? false,
-                    action: goNext
-                )
-            }
-
-        case .appleTranslation:
-            HStack(spacing: 12) {
-                Button("Skip") { goNext() }
-                    .controlSize(.large)
-                nextStepButton(
-                    title: "Get Started",
-                    isHighlighted: true,
                     action: goNext
                 )
             }
@@ -255,7 +233,7 @@ struct OnboardingView: View {
     // MARK: - Provider Selection Step
 
     /// Core providers shown during onboarding (subset of all available providers).
-    private static let onboardingProviderIDs = ["openai", "google", "apple"]
+    private static let onboardingProviderIDs = ["openai", "google"]
 
     private var onboardingProviders: [any TranslationProvider] {
         Self.onboardingProviderIDs.compactMap { id in
@@ -349,7 +327,6 @@ struct OnboardingView: View {
         case "openai": String(localized: "OpenAI-compatible API, requires API Key")
         case "openrouter": String(localized: "Unified API for 200+ models, requires API Key")
         case "google": String(localized: "Free, no API key needed.")
-        case "apple": String(localized: "Built-in system translation, no API Key needed (macOS 15+)")
         default: ""
         }
     }
@@ -381,48 +358,6 @@ struct OnboardingView: View {
             Spacer()
         }
     }
-
-    // MARK: - Apple Translation Step
-
-    @ViewBuilder
-    private var appleTranslationStep: some View {
-        #if canImport(Translation)
-        if #available(macOS 15.0, *) {
-            appleTranslationContent
-        } else {
-            EmptyView()
-        }
-        #else
-        EmptyView()
-        #endif
-    }
-
-    #if canImport(Translation)
-    @available(macOS 15.0, *)
-    private var appleTranslationContent: some View {
-        VStack(spacing: 16) {
-            Spacer()
-
-            Image(systemName: "apple.logo")
-                .font(.system(size: 40))
-                .foregroundStyle(.blue)
-
-            Text("Apple Translation Language Packs")
-                .font(.title2.bold())
-
-            Text("Apple Translation requires language packs for offline translation.\nSelect a language pair and download, or do it later in Settings.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
-
-            OnboardingLanguageDownloadView()
-                .padding(.horizontal, 24)
-
-            Spacer()
-        }
-    }
-    #endif
 
     // MARK: - Helpers
 
@@ -490,98 +425,3 @@ struct OnboardingView: View {
     }
 }
 
-// MARK: - Onboarding Language Download View
-
-#if canImport(Translation)
-@available(macOS 15.0, *)
-private struct OnboardingLanguageDownloadView: View {
-    private enum PairStatus {
-        case checking, installed, needsDownload, unsupported, unknown
-
-        var label: String {
-            switch self {
-            case .checking: String(localized: "Checking…")
-            case .installed: String(localized: "Installed")
-            case .needsDownload: String(localized: "Needs download")
-            case .unsupported: String(localized: "Unsupported")
-            case .unknown: String(localized: "Unknown")
-            }
-        }
-
-        var color: Color {
-            self == .installed ? .green : .secondary
-        }
-    }
-
-    @State private var selectedSource = "en"
-    @State private var selectedTarget = "zh-Hans"
-    @State private var pairStatus: PairStatus?
-    @State private var downloadConfiguration: TranslationSession.Configuration?
-
-    private var selectionId: String { "\(selectedSource)-\(selectedTarget)" }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Picker("Source Language", selection: $selectedSource) {
-                    ForEach(SupportedLanguages.all, id: \.code) { code, name in
-                        Text(name).tag(code)
-                    }
-                }
-                .labelsHidden()
-
-                Image(systemName: "arrow.right")
-                    .foregroundStyle(.secondary)
-
-                Picker("Target Language", selection: $selectedTarget) {
-                    ForEach(SupportedLanguages.all, id: \.code) { code, name in
-                        Text(name).tag(code)
-                    }
-                }
-                .labelsHidden()
-            }
-
-            HStack(spacing: 8) {
-                Button("Check & Download") {
-                    downloadConfiguration = .init(
-                        source: Locale.Language(identifier: selectedSource),
-                        target: Locale.Language(identifier: selectedTarget)
-                    )
-                }
-                .controlSize(.small)
-
-                if let pairStatus {
-                    Label(pairStatus.label, systemImage: pairStatus == .installed ? "checkmark.circle.fill" : "info.circle")
-                        .font(.callout)
-                        .foregroundStyle(pairStatus.color)
-                }
-            }
-        }
-        .task(id: selectionId) {
-            pairStatus = .checking
-            let availability = LanguageAvailability()
-            let source = Locale.Language(identifier: selectedSource)
-            let target = Locale.Language(identifier: selectedTarget)
-            let status = await availability.status(from: source, to: target)
-            pairStatus = switch status {
-            case .installed: .installed
-            case .supported: .needsDownload
-            case .unsupported: .unsupported
-            @unknown default: .unknown
-            }
-        }
-        .translationTask(downloadConfiguration) { session in
-            do {
-                try await session.prepareTranslation()
-                pairStatus = .installed
-            } catch {
-                let availability = LanguageAvailability()
-                let source = Locale.Language(identifier: selectedSource)
-                let target = Locale.Language(identifier: selectedTarget)
-                let status = await availability.status(from: source, to: target)
-                pairStatus = status == .installed ? .installed : .needsDownload
-            }
-        }
-    }
-}
-#endif

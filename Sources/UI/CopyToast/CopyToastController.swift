@@ -146,7 +146,8 @@ final class CopyToastController {
     private func scheduleDismissal() {
         dismissal?.cancel()
         dismissal = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(dwell))
+            // `Task.sleep(for:)` is macOS 13+; nanoseconds works on macOS 12.
+            try? await Task.sleep(nanoseconds: UInt64(dwell * 1_000_000_000))
             guard !Task.isCancelled else { return }
             self?.panel?.toastFadeOut(duration: exitDuration)
         }

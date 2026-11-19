@@ -1,13 +1,17 @@
 import AppKit
+import MarkdownUI
 import SwiftUI
-import Textual
 
 /// Renders Markdown for a translation result or a rich source. Remote images are never fetched;
 /// their placeholder links copy the original URL to the clipboard when clicked. Local attachments
 /// captured with the source are drawn inline only when `showsAttachments` is set.
+///
+/// Uses MarkdownUI (macOS 12+) in place of Textual (macOS 15+); MarkdownUI carries the same
+/// author as Textual and an equivalent block rendering model.
 struct MarkdownResultView: View {
     let text: String
-    let font: Font
+    let fontName: String
+    let fontSize: CGFloat
     var attachments: [String: SourceImageAttachment] = [:]
     var showsAttachments = false
 
@@ -16,15 +20,24 @@ struct MarkdownResultView: View {
             ForEach(Array(MarkdownSupport.renderingSegments(text).enumerated()), id: \.offset) { _, segment in
                 switch segment {
                 case .markdown(let markdown):
-                    StructuredText(markdown: MarkdownSupport.hardenLineBreaks(markdown))
-                        .textual.textSelection(.enabled)
-                        .textual.imageAttachmentLoader(NoRemoteImageLoader())
+                    Markdown(MarkdownSupport.hardenLineBreaks(MarkdownSupport.localizeRemoteImages(markdown)))
+                        .markdownTheme(.gitHub)
+                        .markdownImageProvider(.noRemote)
+                        .markdownTextStyle {
+                            if fontName.isEmpty {
+                                FontFamily(.system())
+                            } else {
+                                FontFamily(.custom(fontName))
+                            }
+                            FontSize(fontSize)
+                        }
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 case .image(let placeholder):
                     imageSegment(placeholder)
                 }
             }
         }
-        .font(font)
     }
 
     @ViewBuilder
@@ -56,10 +69,17 @@ struct MarkdownResultView: View {
     }
 }
 
-private struct NoRemoteImageLoader: AttachmentLoader {
-    struct Blocked: Error {}
-
-    func attachment(for url: URL, text: String, environment: ColorEnvironmentValues) async throws -> AnyAttachment {
-        throw Blocked()
+/// Defense-in-depth: `renderingSegments` already pulls every image out before MarkdownUI
+/// sees the text, and `localizeRemoteImages` demotes the rest to links. This provider
+/// guarantees no network fetch even if an image URL still reaches the renderer.
+private struct NoRemoteImageProvider: ImageProvider {
+    func makeImage(url: URL?) -> some View {
+        Text(verbatim: url?.absoluteString ?? "")
+            .font(.callout)
+            .foregroundStyle(.secondary)
     }
+}
+
+private extension ImageProvider where Self == NoRemoteImageProvider {
+    static var noRemote: Self { .init() }
 }

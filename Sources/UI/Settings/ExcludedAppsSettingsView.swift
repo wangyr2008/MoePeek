@@ -58,11 +58,20 @@ struct ExcludedAppsSettingsView: View {
             .buttonStyle(.borderless)
         }
         .padding()
-        .onChange(of: excludedAppBundleIDs, initial: true) { _, newValue in
-            resolvedExcludedApps = newValue.sorted().map { AppInfo.resolve($0) }
-            if let id = selectedBundleID, !newValue.contains(id) {
-                selectedBundleID = nil
-            }
+        .onChange(of: excludedAppBundleIDs) { newValue in
+            resolveExcludedApps(newValue)
+        }
+        .onAppear {
+            // The two-parameter `onChange(of:initial:)` form is macOS 14+; run the
+            // initial resolution manually for the macOS 12 build.
+            resolveExcludedApps(excludedAppBundleIDs)
+        }
+    }
+
+    private func resolveExcludedApps(_ newValue: Set<String>) {
+        resolvedExcludedApps = newValue.sorted().map { AppInfo.resolve($0) }
+        if let id = selectedBundleID, !newValue.contains(id) {
+            selectedBundleID = nil
         }
     }
 

@@ -1,9 +1,10 @@
+import Combine
 import Foundation
 
 /// Shared manager for fetching models and testing connections against an OpenAI-compatible API.
 /// Pure value-in, value-out — no dependency on Defaults or Keychain.
-@MainActor @Observable
-final class OpenAIConnectionManager {
+@MainActor
+final class OpenAIConnectionManager: ObservableObject {
     private let session: URLSession
 
     init(session: URLSession = translationURLSession) {
@@ -12,14 +13,14 @@ final class OpenAIConnectionManager {
 
     // MARK: - Model Fetching State
 
-    var fetchedModels: [String] = []
-    var isFetchingModels = false
-    var modelFetchError: String?
+    @Published var fetchedModels: [String] = []
+    @Published var isFetchingModels = false
+    @Published var modelFetchError: String?
 
     // MARK: - Connection Test State
 
-    var isTestingConnection = false
-    var testResult: TestResult?
+    @Published var isTestingConnection = false
+    @Published var testResult: TestResult?
 
     enum TestResult: Equatable {
         case success(latencyMs: Int)
@@ -105,10 +106,10 @@ final class OpenAIConnectionManager {
             return
         }
 
-        let start = ContinuousClock.now
+        let start = Date()
         do {
             let (data, response) = try await session.data(for: request)
-            let ms = Int((ContinuousClock.now - start) / .milliseconds(1))
+            let ms = Int(Date().timeIntervalSince(start) * 1000)
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 testResult = .failure(message: String(localized: "Invalid response"))

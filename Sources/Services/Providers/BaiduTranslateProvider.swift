@@ -149,6 +149,6 @@ private struct BaiduSettingsView: View {
                 .font(.caption)
             }
         }
-        .formStyle(.grouped)
+        .compatFormStyleGrouped()
     }
 }

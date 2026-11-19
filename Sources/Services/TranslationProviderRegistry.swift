@@ -1,16 +1,16 @@
+import Combine
 import Defaults
 import Foundation
-import Observation
 
 /// Container for all registered translation providers.
-@MainActor @Observable
-final class TranslationProviderRegistry {
+@MainActor
+final class TranslationProviderRegistry: ObservableObject {
     /// All providers available on this system (filtered by `isAvailable`).
-    private(set) var providers: [any TranslationProvider]
+    @Published private(set) var providers: [any TranslationProvider]
 
-    @ObservationIgnored private let enabledProviderIDs: @MainActor () -> Set<String>
-    @ObservationIgnored private let providerOrder: @MainActor () -> [String]
-    @ObservationIgnored private let onDemandProviderIDs: @MainActor () -> Set<String>
+    private let enabledProviderIDs: @MainActor () -> Set<String>
+    private let providerOrder: @MainActor () -> [String]
+    private let onDemandProviderIDs: @MainActor () -> Set<String>
 
     init(
         providers: [any TranslationProvider],
@@ -53,7 +53,7 @@ final class TranslationProviderRegistry {
     /// single-model providers pass through unchanged (preserving their original id).
     /// Order respects `providerOrder` user preference; unordered providers append at end.
     ///
-    /// - Note: The provider order is not tracked by `@Observable`.
+    /// - Note: The provider order is not tracked by `@Published` observation.
     ///   This property is read per-translation call, not observed by SwiftUI.
     var enabledSlots: [any TranslationProvider] {
         let ordered = Self.sorted(enabledProviders, by: providerOrder())
@@ -107,7 +107,7 @@ final class TranslationProviderRegistry {
 
     func removeCustomProvider(id: String) {
         // Persist removal to Defaults before mutating `providers`,
-        // because @Observable triggers immediate UI refresh.
+        // because @Published triggers immediate UI refresh.
         var defs = Defaults[.customProviders]
         defs.removeAll { $0.id == id }
         Defaults[.customProviders] = defs
@@ -193,13 +193,6 @@ final class TranslationProviderRegistry {
             OllamaProvider(),
             LMStudioProvider(),
         ]
-
-        // System
-        #if canImport(Translation)
-        if #available(macOS 15.0, *) {
-            allProviders.append(AppleTranslationProvider())
-        }
-        #endif
 
         // Custom providers
         for def in Defaults[.customProviders] {

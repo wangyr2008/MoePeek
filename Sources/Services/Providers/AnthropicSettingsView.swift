@@ -6,7 +6,7 @@ struct AnthropicSettingsView: View {
     private let provider: AnthropicProvider
     private let metaService = ModelMetadataService.shared
 
-    @State private var connectionManager = AnthropicConnectionManager()
+    @StateObject private var connectionManager = AnthropicConnectionManager()
     @State private var baseURLText: String
     @State private var apiKeyText: String
     @State private var modelText: String
@@ -69,12 +69,12 @@ struct AnthropicSettingsView: View {
                 .font(.caption)
             }
         }
-        .formStyle(.grouped)
-        .onChange(of: baseURLText) { _, newValue in
+        .compatFormStyleGrouped()
+        .onChange(of: baseURLText) { newValue in
             Defaults[provider.baseURLKey] = newValue
             connectionManager.clearModels()
         }
-        .onChange(of: apiKeyText) { _, newValue in
+        .onChange(of: apiKeyText) { newValue in
             Defaults[provider.apiKeyKey] = newValue
             connectionManager.clearModels()
         }
@@ -157,7 +157,7 @@ struct AnthropicSettingsView: View {
                     .font(.subheadline.bold())
                 TextField("4096", text: $maxTokensText)
                     .textFieldStyle(.roundedBorder)
-                    .onChange(of: maxTokensText) { _, newValue in
+                    .onChange(of: maxTokensText) { newValue in
                         if let value = Int(newValue), value > 0 {
                             Defaults[provider.maxTokensKey] = value
                         }
@@ -220,7 +220,7 @@ struct AnthropicSettingsView: View {
 
 /// Trailing accessory for model text field: fetch progress, model dropdown, or refresh button.
 private struct AnthropicModelFetchAccessory: View {
-    let connectionManager: AnthropicConnectionManager
+    @ObservedObject var connectionManager: AnthropicConnectionManager
     @Binding var model: String
     let baseURL: String
     let apiKey: String

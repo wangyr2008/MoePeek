@@ -70,14 +70,14 @@ struct ProviderResultCard: View {
             RoundedRectangle(cornerRadius: 6)
                 .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
         )
-        .onChange(of: copyFeedbackGeneration) { _, _ in
+        .onChange(of: copyFeedbackGeneration) { _ in
             guard isCopyFeedbackActive else { return }
             pulseTask?.cancel()
             withAnimation(.spring(response: 0.18, dampingFraction: 0.55)) {
                 isCopyPulsing = true
             }
             pulseTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(180))
+                try? await Task.sleep(nanoseconds: 180_000_000)
                 guard !Task.isCancelled else { return }
                 withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
                     isCopyPulsing = false
@@ -90,9 +90,9 @@ struct ProviderResultCard: View {
         }
     }
 
-    private func isSpeaking(_ text: String) -> Bool {
-        ttsCoordinator?.isPlaying(text) ?? false
-    }
+    // NOTE: TTS playback state is observed by `TTSSpeakerIcon` (which holds the
+    // coordinator as @ObservedObject); this view only reads the environment key for
+    // nil-checks and actions, matching the macOS 12 ObservableObject refactor.
 
     // MARK: - Status Indicator
 
@@ -191,8 +191,14 @@ struct ProviderResultCard: View {
 
         return VStack(alignment: .leading, spacing: 4) {
             if offersMarkdown && viewMode != .source {
-                MarkdownResultView(text: text, font: font, attachments: attachments, showsAttachments: viewMode == .rich)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                MarkdownResultView(
+                    text: text,
+                    fontName: fontName,
+                    fontSize: CGFloat(fontSize),
+                    attachments: attachments,
+                    showsAttachments: viewMode == .rich
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(text)
                     .font(font)
@@ -220,16 +226,16 @@ struct ProviderResultCard: View {
                         .help("Switch result view")
                     }
 
-                    if canSpeak, let ttsCoordinator {
+                    if canSpeak, let tts = ttsCoordinator {
                         Button {
-                            if isSpeaking(spokenText) {
-                                ttsCoordinator.stop()
+                            if tts.isPlaying(spokenText) {
+                                tts.stop()
                             } else {
-                                ttsCoordinator.speak(spokenText, language: targetLanguage)
+                                tts.speak(spokenText, language: targetLanguage)
                             }
                         } label: {
                             HStack(spacing: 2) {
-                                Image(systemName: isSpeaking(spokenText) ? "speaker.wave.3.fill" : "speaker.wave.2")
+                                TTSSpeakerIcon(tts: tts, text: spokenText)
                                 if targetLanguage.hasPrefix("en") {
                                     Text(ttsAccent.shortLabel)
                                 }

@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 // "AXTrustedCheckOptionPrompt" — same value as kAXTrustedCheckOptionPrompt,
 // but using a string literal avoids the concurrency warning on the Unmanaged global var.
@@ -6,10 +7,9 @@ nonisolated(unsafe) private let axTrustedPromptKey = "AXTrustedCheckOptionPrompt
 
 /// Manages Accessibility and Screen Recording permission states with polling.
 @MainActor
-@Observable
-final class PermissionManager: PermissionChecking {
-    private(set) var isAccessibilityGranted = false
-    private(set) var isScreenRecordingGranted = false
+final class PermissionManager: ObservableObject, PermissionChecking {
+    @Published private(set) var isAccessibilityGranted = false
+    @Published private(set) var isScreenRecordingGranted = false
     private var pollTimer: Timer?
 
     var allPermissionsGranted: Bool {

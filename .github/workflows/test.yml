@@ -3,7 +3,7 @@ name: Tests
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, "compat/**"]
   workflow_dispatch:
 
 permissions:
@@ -33,14 +33,12 @@ jobs:
 
       - name: Run tests
         run: |
-          # RFC 8032 public test vector for Sparkle's test-host initialization.
           xcodebuild test \
             -workspace MoePeek.xcworkspace \
             -scheme MoePeek \
             -destination 'platform=macOS' \
             -resultBundlePath build/Tests.xcresult \
-            MACOSX_DEPLOYMENT_TARGET=15.0 \
-            SPARKLE_ED_PUBLIC_KEY=11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo= \
+            MACOSX_DEPLOYMENT_TARGET=12.0 \
             CODE_SIGNING_ALLOWED=NO
 
       - name: Upload test results

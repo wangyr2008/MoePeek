@@ -3,7 +3,7 @@ import SwiftUI
 /// Simplified view shown when permissions are lost after an app update.
 /// Displays permission status cards and auto-closes once all are re-granted.
 struct PermissionRecoveryView: View {
-    let permissionManager: PermissionManager
+    @ObservedObject var permissionManager: PermissionManager
     let onAllGranted: () -> Void
 
     var body: some View {

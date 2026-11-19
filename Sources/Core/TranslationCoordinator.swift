@@ -1,10 +1,10 @@
 import AppKit
+import Combine
 import Defaults
 
 /// Central coordinator that orchestrates: text grabbing → language detection → multi-provider translation.
 @MainActor
-@Observable
-final class TranslationCoordinator {
+final class TranslationCoordinator: ObservableObject {
     /// Tells an action entry point whether it should present a new popup.
     enum ActionOutcome: Sendable, Equatable {
         case present
@@ -31,30 +31,30 @@ final class TranslationCoordinator {
         case error(message: String)
     }
 
-    private(set) var phase: Phase = .idle
-    private(set) var sourceText: String = ""
+    @Published private(set) var phase: Phase = .idle
+    @Published private(set) var sourceText: String = ""
     /// Images captured with rich source text, keyed by placeholder id. Released with the request.
-    private(set) var sourceAttachments: [String: SourceImageAttachment] = [:]
-    private(set) var detectedLanguage: String?
-    private(set) var targetLanguage: String = ""
-    private(set) var providerStates: [String: ProviderState] = [:]
+    @Published private(set) var sourceAttachments: [String: SourceImageAttachment] = [:]
+    @Published private(set) var detectedLanguage: String?
+    @Published private(set) var targetLanguage: String = ""
+    @Published private(set) var providerStates: [String: ProviderState] = [:]
     /// Setting a non-nil error also auto-unpins, so an error never appears in a frozen pinned panel.
-    private(set) var globalError: String? {
+    @Published private(set) var globalError: String? {
         didSet {
             if globalError != nil { isPinned = false }
         }
     }
-    private(set) var detectionResult: DetectionResult?
+    @Published private(set) var detectionResult: DetectionResult?
     /// Snapshot of expanded provider slots for the current translation session.
     /// PopupView reads this instead of `registry.enabledSlots` to avoid recomputation during streaming.
-    private(set) var activeSlots: [any TranslationProvider] = []
+    @Published private(set) var activeSlots: [any TranslationProvider] = []
     /// Monotonically increasing counter; increments each time `translate()` is called.
     /// Used by PopupView to reset `expandedProviders` for subsequent translations.
-    private(set) var translationGeneration: Int = 0
-    private(set) var copiedProviderID: String?
-    private(set) var copyFeedbackGeneration: Int = 0
+    @Published private(set) var translationGeneration: Int = 0
+    @Published private(set) var copiedProviderID: String?
+    @Published private(set) var copyFeedbackGeneration: Int = 0
     /// Single source of truth for popup pin state. PopupView toggles, PopupPanelController reads.
-    var isPinned: Bool = false
+    @Published var isPinned: Bool = false
 
     let registry: TranslationProviderRegistry
     private let permissionManager: any PermissionChecking
@@ -495,7 +495,7 @@ final class TranslationCoordinator {
         copyFeedbackGeneration += 1
 
         copyFeedbackTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(900))
+            try? await Task.sleep(nanoseconds: 900 * 1_000_000)
             guard !Task.isCancelled else { return }
             guard self?.copiedProviderID == providerID else { return }
             self?.copiedProviderID = nil

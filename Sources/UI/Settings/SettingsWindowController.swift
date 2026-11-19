@@ -11,18 +11,15 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let registry: TranslationProviderRegistry
     private let ttsRegistry: TTSProviderRegistry
     private let ttsCoordinator: TTSCoordinator
-    private let updaterController: UpdaterController?
 
     init(
         registry: TranslationProviderRegistry,
         ttsRegistry: TTSProviderRegistry,
-        ttsCoordinator: TTSCoordinator,
-        updaterController: UpdaterController?
+        ttsCoordinator: TTSCoordinator
     ) {
         self.registry = registry
         self.ttsRegistry = ttsRegistry
         self.ttsCoordinator = ttsCoordinator
-        self.updaterController = updaterController
     }
 
     func showWindow() {
@@ -35,10 +32,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         let settingsView = SettingsView(
             registry: registry,
             ttsRegistry: ttsRegistry,
-            ttsCoordinator: ttsCoordinator,
-            updaterController: updaterController
+            ttsCoordinator: ttsCoordinator
         )
-        let hostingView = NSHostingView(rootView: settingsView)
+        let hostingView = Compat.hostingView(settingsView)
 
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: NSSize(width: 720, height: 680)),

@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Settings view for translation providers — left-right split layout.
 struct ServiceSettingsView: View {
-    let registry: TranslationProviderRegistry
+    @ObservedObject var registry: TranslationProviderRegistry
 
     @Default(.enabledProviders) private var enabledProviders
     @Default(.onDemandProviderIDs) private var onDemandProviderIDs
@@ -66,7 +66,7 @@ struct ServiceSettingsView: View {
                 }
             }
             .listStyle(.sidebar)
-            .scrollContentBackground(.hidden)
+            .compatScrollContentBackgroundHidden()
 
             Divider()
 
@@ -156,14 +156,14 @@ struct ServiceSettingsView: View {
                     provider.makeSettingsView()
                         .id(id)
                 }
-                .scrollContentBackground(.hidden)
+                .compatScrollContentBackgroundHidden()
             }
         } else {
-            ContentUnavailableView(
-                "Select a provider",
+            CompatUnavailableView(
+                title: "Select a provider",
                 systemImage: "globe",
-                description: Text("Choose a provider from the list to configure it.")
-            )
+                description: "Choose a provider from the list to configure it."
+                )
         }
     }
 

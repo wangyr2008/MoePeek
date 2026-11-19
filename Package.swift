@@ -6,7 +6,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", exact: "2.3.0"),
         .package(url: "https://github.com/sindresorhus/Defaults", from: "9.0.0"),
-        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.0.0"),
-        .package(url: "https://github.com/gonzalezreal/textual", from: "0.5.0"),
+        // MarkdownUI 2.x is the last line supporting macOS 12; Textual requires macOS 15.
+        .package(url: "https://github.com/gonzalezreal/swift-markdown-ui", exact: "2.4.1"),
     ]
 )

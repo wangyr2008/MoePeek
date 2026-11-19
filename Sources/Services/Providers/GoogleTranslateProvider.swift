@@ -167,7 +167,7 @@ private struct GoogleTranslateSettingsView: View {
                 }
             }
         }
-        .formStyle(.grouped)
+        .compatFormStyleGrouped()
         .task(id: testID) {
             guard let currentTestID = testID else { return }
             do {

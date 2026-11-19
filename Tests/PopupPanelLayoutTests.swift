@@ -35,12 +35,12 @@ struct PopupPanelLayoutTests {
 
         controller.showAtCursor()
         for _ in 0..<100 where !coordinator.allFinished {
-            try await Task.sleep(for: .milliseconds(10))
+            try await Task.sleep(nanoseconds: 10 * 1_000_000)
         }
         #expect(coordinator.allFinished)
-        try await Task.sleep(for: .milliseconds(300))
+        try await Task.sleep(nanoseconds: 300 * 1_000_000)
         let settledCount = probe.heights.count
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(nanoseconds: 100 * 1_000_000)
         #expect(controller.isVisible)
         #expect(probe.heights.count <= 30, "Resize history: \(probe.heights)")
         #expect(probe.heights.count == settledCount)
@@ -61,7 +61,7 @@ struct PopupPanelLayoutTests {
         let controller = PopupPanelController(coordinator: coordinator)
         defer { controller.dismiss() }
         controller.showAtCursor()
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(nanoseconds: 100 * 1_000_000)
         let visiblePanel = NSApp.windows.compactMap { $0 as? PopupPanel }.first(where: \.isVisible)
         let panel = try #require(visiblePanel)
 
@@ -69,14 +69,14 @@ struct PopupPanelLayoutTests {
         let manualFrame = NSRect(x: panel.frame.minX, y: panel.frame.maxY - 220, width: 450, height: 220)
         panel.setFrame(manualFrame, display: true)
         continuation.yield(longText)
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(nanoseconds: 100 * 1_000_000)
         #expect(panel.frame == manualFrame)
 
         panel.manualResizeGeneration = coordinator.translationGeneration
         panel.isUserResizing = false
         continuation.yield(longText + "\n" + longText)
         continuation.finish()
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(nanoseconds: 100 * 1_000_000)
         #expect(coordinator.allFinished)
         #expect(panel.frame == manualFrame)
     }
@@ -95,13 +95,13 @@ struct PopupPanelLayoutTests {
         coordinator.translate("Short result")
         coordinator.isPinned = true
         controller.showAtCursor()
-        try await Task.sleep(for: .milliseconds(200))
+        try await Task.sleep(nanoseconds: 200 * 1_000_000)
         let visiblePanel = NSApp.windows.compactMap { $0 as? PopupPanel }.first(where: \.isVisible)
         let panel = try #require(visiblePanel)
         #expect(coordinator.allFinished)
         #expect(panel.frame.height == 350)
         controller.dismiss()
-        try await Task.sleep(for: .milliseconds(50))
+        try await Task.sleep(nanoseconds: 50 * 1_000_000)
         #expect(!controller.isVisible)
     }
 

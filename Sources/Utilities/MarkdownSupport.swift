@@ -114,6 +114,31 @@ enum MarkdownSupport {
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Rewrites remote image references (`![alt](url)`) into plain links (`[alt](url)`).
+    /// MoePeek never fetches network images: `renderingSegments` already extracts every
+    /// image before rendering, and this guard covers anything that still reaches the
+    /// Markdown renderer so it degrades to a link instead of triggering a fetch.
+    static func localizeRemoteImages(_ text: String) -> String {
+        let nsText = text as NSString
+        let matches = imagePattern.matches(in: text, range: NSRange(location: 0, length: nsText.length))
+        guard !matches.isEmpty else { return text }
+
+        var result = text
+        for match in matches.reversed() {
+            guard match.numberOfRanges >= 3,
+                  let fullRange = Range(match.range, in: text),
+                  let urlTextRange = Range(match.range(at: 2), in: text) else { continue }
+            let rawURL = String(text[urlTextRange])
+            guard let url = URL(string: rawURL),
+                  let scheme = url.scheme?.lowercased(),
+                  scheme == "http" || scheme == "https" else { continue }
+            let label = nsText.substring(with: match.range(at: 1))
+            let displayLabel = label.isEmpty ? "🖼 \(url.absoluteString)" : label
+            result = result.replacingCharacters(in: fullRange, with: "[\(displayLabel)](\(url.absoluteString))")
+        }
+        return result
+    }
+
     /// Removes captured-image placeholders, which mean nothing outside the app.
     static func removingAttachmentPlaceholders(_ text: String) -> String {
         let pattern = "[ \\t]?!\\[[^\\]\\n]*\\]\\(\(SourceAttachmentReference.scheme):[^)\\s]+\\)"

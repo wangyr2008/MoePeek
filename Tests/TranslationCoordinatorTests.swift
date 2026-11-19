@@ -131,7 +131,7 @@ struct TranslationCoordinatorTests {
     private func eventually(_ condition: () -> Bool) async -> Bool {
         for _ in 0..<100 {
             if condition() { return true }
-            try? await Task.sleep(for: .milliseconds(10))
+            try? await Task.sleep(nanoseconds: 10 * 1_000_000)
         }
         return false
     }

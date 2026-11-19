@@ -1,19 +1,20 @@
+import Combine
 import Foundation
 
 /// Fetches and caches model capability metadata from models.dev.
 /// Data is fetched once per app session and silently ignored on network failure.
-@MainActor @Observable
-final class ModelMetadataService {
+@MainActor
+final class ModelMetadataService: ObservableObject {
     static let shared = ModelMetadataService()
 
     /// Keyed by full model id as it appears in models.dev (e.g. "kimi-k2.5", "moonshotai/Kimi-K2.5").
     /// Stores all candidates from different providers sharing the same model id.
-    private var modelIndex: [String: [ModelMeta]] = [:]
+    @Published private var modelIndex: [String: [ModelMeta]] = [:]
     /// Keyed by lowercased short name (last path component after "/").
     /// Stores all candidates sharing the same short name to detect ambiguous matches.
-    private var shortIndex: [String: [ModelMeta]] = [:]
+    @Published private var shortIndex: [String: [ModelMeta]] = [:]
     private var isFetching = false
-    private(set) var hasFetched = false
+    @Published private(set) var hasFetched = false
 
     struct ModelMeta: Sendable {
         let toolCall: Bool

@@ -74,7 +74,7 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
             needsRestorePolicy = true
         }
 
-        let hostingView = NSHostingView(rootView: contentView)
+        let hostingView = Compat.hostingView(contentView)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.titled, .closable],

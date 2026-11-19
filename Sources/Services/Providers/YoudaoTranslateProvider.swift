@@ -362,6 +362,6 @@ private struct YoudaoTranslateSettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
+        .compatFormStyleGrouped()
     }
 }
